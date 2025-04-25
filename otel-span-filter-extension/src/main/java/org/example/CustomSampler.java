@@ -34,7 +34,7 @@ public class CustomSampler implements Sampler {
         if (isMetricEndpoint(name)) {
             return SamplingResult.create(SamplingDecision.DROP);
         }
-        var urlPath = attributes.get(UrlAttributes.URL_PATH);
+        // var urlPath = attributes.get(UrlAttributes.URL_PATH);
         logger.info("Falling back to parent sampler.");
         return rootSampler.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks);
     }
