@@ -33,3 +33,35 @@
 
 - **cURL**
   <br/>```curl --request GET 'http://localhost:10002/hello'```
+
+## Spring Boot Actuator Endpoints
+
+This application includes Spring Boot Actuator which provides production-ready features to help monitor and manage the application.
+
+### Health Endpoint
+
+The health endpoint provides information about the application's health status.
+
+- **Browser or REST client**
+  <br/>```http://localhost:10002/actuator/health```
+
+- **cURL**
+  <br/>```curl --request GET 'http://localhost:10002/actuator/health'```
+
+The health endpoint will return detailed health information as it's configured with `management.endpoint.health.show-details=always`.
+
+### Metrics Endpoint
+
+The metrics endpoint provides metrics information about the application.
+
+- **Browser or REST client**
+  <br/>```http://localhost:10002/actuator/metrics```
+
+- **cURL**
+  <br/>```curl --request GET 'http://localhost:10002/actuator/metrics'```
+
+To view specific metrics, append the metric name to the URL:
+  <br/>```http://localhost:10002/actuator/metrics/{metric.name}```
+
+For example:
+  <br/>```http://localhost:10002/actuator/metrics/jvm.memory.used```
