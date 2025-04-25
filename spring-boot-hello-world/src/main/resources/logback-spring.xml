@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Define the Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- The MDC values for trace_id, span_id, trace_flags will be printed with each log message -->
+            <pattern>%d{HH:mm:ss.SSS} trace_id=%X{trace_id} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- OpenTelemetryAppender that wraps your existing appender (CONSOLE) -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="CONSOLE"/>
+    </appender>
+
+    <!-- Set the root logging level and use the OTEL appender -->
+    <root level="INFO">
+        <appender-ref ref="OTEL"/>
+    </root>
+
+    <!-- Optional: You can also configure logging for specific packages or classes -->
+    <!-- Example: -->
+    <!-- <logger name="org.springframework" level="WARN" /> -->
+
+</configuration>
