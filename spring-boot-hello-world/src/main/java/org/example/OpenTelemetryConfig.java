@@ -1,8 +1,10 @@
 package org.example;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.contrib.sampler.RuleBasedRoutingSampler;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
@@ -14,6 +16,7 @@ import io.opentelemetry.semconv.UrlAttributes;
 import java.util.Collections;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,11 +24,19 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenTelemetryConfig {
 
+    @Value("${otel.service.name}")
+    private String serviceName;
+
     @Bean
     public AutoConfigurationCustomizerProvider otelCustomizer() {
         return p ->
                 p.addSamplerCustomizer(this::configureSampler)
                         .addSpanExporterCustomizer(this::configureSpanExporter);
+    }
+
+    @Bean
+    public Tracer tracer(OpenTelemetry openTelemetry) {
+        return openTelemetry.getTracer(serviceName);
     }
 
     /** suppress spans for actuator endpoints */
