@@ -8,7 +8,7 @@ import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.sdk.trace.samplers.SamplingDecision;
 import io.opentelemetry.sdk.trace.samplers.SamplingResult;
-import io.opentelemetry.semconv.UrlAttributes;
+//import io.opentelemetry.semconv.UrlAttributes;
 
 import java.util.List;
 import java.util.logging.Logger;
