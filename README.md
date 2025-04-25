@@ -15,3 +15,9 @@ For more details, see the [Spring Boot Hello World README](spring-boot-hello-wor
 A simple HTTP server that returns a "Hello, OpenTelemetry!" message with OpenTelemetry tracing.
 
 For more details, see the [Hello Server README](hello-server/README.md).
+
+### Start OTEL Collector
+
+```aiignore
+ ./otelcol-contrib --config otel-collector-config.yaml
+```

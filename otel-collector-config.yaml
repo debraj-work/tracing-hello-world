@@ -10,10 +10,11 @@ exporters:
 #  logging:
 #    verbosity: detailed # Ensure logging exporter is defined
   file:
-    path: /var/lib/otel-collector/traces.log
+    path: /tmp/otel-data/traces.log
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       exporters: [file]
+#      exporters: [debug]
