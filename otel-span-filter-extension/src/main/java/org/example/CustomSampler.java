@@ -1,5 +1,6 @@
 package org.example;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
@@ -27,12 +28,13 @@ public class CustomSampler implements Sampler {
             System.out.println("Entry: " + entry);
             logger.info("Entry: " + entry);
         }
-        var urlPath = attributes.get(UrlAttributes.URL_PATH);
-        // Example: Never sample /health checks
-        if ("/health".equals(urlPath)) {
-            logger.info("Dropping /health check span based on endpoint.");
+        if (isRedisMaintaince(attributes)) {
             return SamplingResult.create(SamplingDecision.DROP);
         }
+        if (isMetricEndpoint(name)) {
+            return SamplingResult.create(SamplingDecision.DROP);
+        }
+        var urlPath = attributes.get(UrlAttributes.URL_PATH);
         logger.info("Falling back to parent sampler.");
         return rootSampler.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks);
     }
@@ -40,5 +42,28 @@ public class CustomSampler implements Sampler {
     @Override
     public String getDescription() {
         return name + "{delegates to=" + rootSampler.getDescription() + "}";
+    }
+
+    private boolean isRedisMaintaince(Attributes attributes) {
+        // Check if the span is a Redis maintenance operation
+        String dbSystem = attributes.get(AttributeKey.stringKey("db.system"));
+        String dbStatement = attributes.get(AttributeKey.stringKey("db.statement"));
+
+        // Suppress Redis cluster health checks like CLUSTER NODES, PING, etc.
+        if ("redis".equals(dbSystem)) {
+            if (dbStatement != null &&
+                    (dbStatement.contains("CLUSTER NODES") ||
+                            dbStatement.contains("PING") ||
+                            dbStatement.contains("CLIENT SETNAME lettuce#ClusterTopologyRefresh"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isMetricEndpoint(String name) {
+        // Check if the span is a metrics endpoint
+        return  name.startsWith("HTTP") && (
+                name.contains("/health") || name.contains("/metrics"));
     }
 }
