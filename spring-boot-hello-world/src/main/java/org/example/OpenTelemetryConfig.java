@@ -4,6 +4,8 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.contrib.sampler.RuleBasedRoutingSampler;
+import io.opentelemetry.instrumentation.annotations.AddingSpanAttributes;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
@@ -34,6 +36,7 @@ public class OpenTelemetryConfig {
 
     /** suppress spans for actuator endpoints */
     private RuleBasedRoutingSampler configureSampler(Sampler fallback, ConfigProperties config) {
+        // user_agent.original = Prometheus/2.47.0  and url.path /metrics
         return RuleBasedRoutingSampler.builder(SpanKind.SERVER, fallback)
                 .drop(UrlAttributes.URL_PATH, "^/actuator")
                 .build();
