@@ -45,6 +45,9 @@ The application can be configured to run with the OpenTelemetry Java Agent like 
 ```aiignore
 java -cp $PROJECT_ROOT/hello-server/target/hello-server-1.0-SNAPSHOT.jar \
   -javaagent:$PROJECT_ROOT/opentelemetry-javaagent-2.14.0.jar \
+  -Dotel.javaagent.extensions=$PROJECT_ROOT/otel-span-filter-extension/target/otel-span-filter-extension-1.0-SNAPSHOT.jar \
+  -Dotel.traces.sampler=CustomSamplerProvider \
+  -Dotel.traces.sampler=org.example.CustomSamplerProvider \
   -Dotel.service.name=hello-plain-java \
   -Dotel.exporter.otlp.endpoint=http://0.0.0.0:4318 \
   -Dotel.javaagent.debug=true \
