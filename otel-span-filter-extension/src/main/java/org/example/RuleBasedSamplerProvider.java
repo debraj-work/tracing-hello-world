@@ -1,23 +1,46 @@
 package org.example;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.autoconfigure.spi.traces.ConfigurableSamplerProvider;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import io.opentelemetry.semconv.UrlAttributes;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
+    private static final String ENV_RULE_SAMPLER_DROP_PROPS_FILE = "rule.sampler.drop.props.file";
     private static final Logger logger = Logger.getLogger(RuleBasedSamplerProvider.class.getName());
     private static final String name = "RuleBasedSamplerProvider";
     @Override
     public Sampler createSampler(ConfigProperties configProperties) {
         logger.info("Creating Sampler for " + name);
-        return RuleBasedRoutingSampler.builder(SpanKind.SERVER, Sampler.parentBased(Sampler.alwaysOn()))
-                .drop(UrlAttributes.URL_PATH, "^/metrics$")
-                .drop(UrlAttributes.URL_PATH, "^/health$")
-                .build();
+        var props = dropProps();
+        var builder = RuleBasedRoutingSampler.builder(SpanKind.SERVER, Sampler.parentBased(Sampler.alwaysOn()));
+        props.forEach((key, value) ->
+                builder.drop(AttributeKey.stringKey((String) key), (String) value)
+        );
+        return builder.build();
+    }
+
+    private Properties dropProps() {
+        var props = new Properties();
+        var propsFile = System.getProperty(ENV_RULE_SAMPLER_DROP_PROPS_FILE, "");
+        if (propsFile == null || propsFile.trim().isEmpty()) {
+            logger.warning("Environment variable " + ENV_RULE_SAMPLER_DROP_PROPS_FILE + " is not set.");
+            return props;
+        }
+        try (var reader = Files.newBufferedReader(Paths.get(propsFile))) {
+            props.load(reader);
+            props.forEach((key, value) -> logger.info(key + " = " + value));
+            return props;
+        } catch (Exception e) {
+            logger.warning("Failed to load config file: " + e.getMessage());
+        }
+        return props;
     }
 
     @Override

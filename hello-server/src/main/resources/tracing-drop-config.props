@@ -1,0 +1,2 @@
+url.path=^/metrics$
+url.path=^/health$
