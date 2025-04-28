@@ -48,6 +48,13 @@
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j2.version}</version>
             </dependency>
+
+            <!-- Lettuce Redis Client -->
+            <dependency>
+                <groupId>io.lettuce</groupId>
+                <artifactId>lettuce-core</artifactId>
+                <version>6.3.2.RELEASE</version>
+            </dependency>
     </dependencies>
 
     <build>
@@ -69,7 +76,7 @@
                                 <resource>
                                     <directory>src/main/resources</directory>
                                     <includes>
-                                        <include>tracing-drop-config.props</include>
+                                        <include>sampler-drop-config.yaml</include>
                                     </includes>
                                 </resource>
                             </resources>

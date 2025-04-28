@@ -3,18 +3,18 @@ package org.example;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class HelloServer {
@@ -34,27 +34,45 @@ public class HelloServer {
         logger.info("Server started at http://localhost:8080/");
     }
 
-    // Simple Redis client implementation
-    static class RedisClient {
+    // Lettuce Redis client implementation
+    static class LettuceRedisClient {
         private static final AtomicLong requestCount = new AtomicLong(0);
+        private static final io.lettuce.core.RedisClient redisClient;
+        private static final StatefulRedisConnection<String, String> connection;
+
+        static {
+            try {
+                RedisURI redisURI = RedisURI.builder()
+                    .withHost(REDIS_HOST)
+                    .withPort(REDIS_PORT)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .build();
+                redisClient = io.lettuce.core.RedisClient.create(redisURI);
+                connection = redisClient.connect();
+                logger.info("Connected to Redis at {}:{}", REDIS_HOST, REDIS_PORT);
+
+                // Register shutdown hook to close resources
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    logger.info("Shutting down Redis connection");
+                    if (connection != null) {
+                        connection.close();
+                    }
+                    if (redisClient != null) {
+                        redisClient.shutdown();
+                    }
+                }));
+            } catch (Exception e) {
+                logger.error("Failed to initialize Redis connection", e);
+                throw new RuntimeException("Failed to initialize Redis connection", e);
+            }
+        }
 
         public static void incrementRequestCount() {
-            try (Socket socket = new Socket(REDIS_HOST, REDIS_PORT);
-                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-                // Send INCR command to Redis
-                out.println("*2");
-                out.println("$4");
-                out.println("INCR");
-                out.println("$" + REQUEST_COUNT_KEY.length());
-                out.println(REQUEST_COUNT_KEY);
-
-                // Read response (optional)
-                String response = in.readLine();
-                logger.info("Redis response: " + response);
-
-            } catch (IOException e) {
+            try {
+                RedisCommands<String, String> commands = connection.sync();
+                String response = commands.incr(REQUEST_COUNT_KEY).toString();
+                logger.info("Redis response: {}", response);
+            } catch (Exception e) {
                 logger.error("Error connecting to Redis", e);
                 // Fallback to local counter if Redis is unavailable
                 requestCount.incrementAndGet();
@@ -66,7 +84,7 @@ public class HelloServer {
         @WithSpan
         public void handle(HttpExchange exchange) throws IOException {
             // Increment request count in Redis
-            RedisClient.incrementRequestCount();
+            LettuceRedisClient.incrementRequestCount();
 
             String response = "Hello, OpenTelemetry!";
             exchange.sendResponseHeaders(200, response.getBytes().length);
