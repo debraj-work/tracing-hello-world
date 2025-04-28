@@ -9,6 +9,7 @@ import io.opentelemetry.sdk.autoconfigure.spi.traces.ConfigurableSamplerProvider
 import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.sdk.trace.samplers.SamplingResult;
+import lombok.val;
 
 import java.nio.file.Paths;
 import java.util.*;
@@ -21,16 +22,14 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
     @Override
     public Sampler createSampler(ConfigProperties configProperties) {
         logger.info("Creating Sampler for " + name);
-        var defaultSampler = Sampler.parentBased(Sampler.alwaysOn());
-        var dropRules = readDropRulesFromYaml();
-        var samplersBySpanKind = new HashMap<SpanKind, Sampler>();
+        val defaultSampler = Sampler.parentBased(Sampler.alwaysOn());
+        val dropRules = readDropRulesFromYaml();
+        val samplersBySpanKind = new HashMap<SpanKind, Sampler>();
 
         // Create samplers for each SpanKind
         dropRules.forEach((spanKind, attributes) -> {
-            var builder = RuleBasedRoutingSampler.builder(spanKind, defaultSampler);
-            attributes.forEach((attributeKey, patterns) -> {
-                patterns.forEach(pattern -> builder.drop(attributeKey, pattern));
-            });
+            val builder = RuleBasedRoutingSampler.builder(spanKind, defaultSampler);
+            attributes.forEach((attributeKey, patterns) -> patterns.forEach(pattern -> builder.drop(attributeKey, pattern)));
             samplersBySpanKind.put(spanKind, builder.build());
         });
 
@@ -56,7 +55,7 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
 
 
     public Map<SpanKind, Map<AttributeKey<String>, Set<String>>> readDropRulesFromYaml() {
-        String yamlFile = System.getProperty(ENV_RULE_SAMPLER_DROP_YAML_FILE);
+        var yamlFile = System.getProperty(ENV_RULE_SAMPLER_DROP_YAML_FILE);
 
         if (yamlFile == null || yamlFile.trim().isEmpty()) {
             yamlFile = System.getenv(ENV_RULE_SAMPLER_DROP_YAML_FILE.replace('.', '_').toUpperCase());
