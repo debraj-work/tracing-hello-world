@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class HelloServer {
@@ -21,10 +22,13 @@ public class HelloServer {
     private static final String REDIS_HOST = "localhost";
     private static final int REDIS_PORT = 6379;
     private static final String REQUEST_COUNT_KEY = "hello_server:request_count";
+    private static final Instant START_TIME = Instant.now();
 
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/", new HelloHandler());
+        server.createContext("/health", new HealthHandler());
+        server.createContext("/metrics", new MetricsHandler());
         server.setExecutor(null);
         server.start();
         logger.info("Server started at http://localhost:8080/");
@@ -68,6 +72,33 @@ public class HelloServer {
             exchange.sendResponseHeaders(200, response.getBytes().length);
             OutputStream os = exchange.getResponseBody();
             logger.info("Returning Response");
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
+    static class HealthHandler implements HttpHandler {
+        @WithSpan
+        public void handle(HttpExchange exchange) throws IOException {
+            String response = "{\"status\":\"UP\"}";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.getBytes().length);
+            OutputStream os = exchange.getResponseBody();
+            logger.info("Health check requested");
+            os.write(response.getBytes());
+            os.close();
+        }
+    }
+
+    static class MetricsHandler implements HttpHandler {
+        @WithSpan
+        public void handle(HttpExchange exchange) throws IOException {
+            long uptimeSeconds = Instant.now().getEpochSecond() - START_TIME.getEpochSecond();
+            String response = "{\"uptime\":" + uptimeSeconds + "}";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.getBytes().length);
+            OutputStream os = exchange.getResponseBody();
+            logger.info("Metrics requested");
             os.write(response.getBytes());
             os.close();
         }
