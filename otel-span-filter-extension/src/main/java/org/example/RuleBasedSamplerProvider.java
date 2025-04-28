@@ -29,14 +29,12 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
         val dropRules = readDropRulesFromYaml();
         val samplersBySpanKind = new HashMap<SpanKind, Sampler>();
 
-        // Create samplers for each SpanKind
         dropRules.forEach((spanKind, attributes) -> {
             val builder = RuleBasedRoutingSampler.builder(spanKind, defaultSampler);
             attributes.forEach((attributeKey, patterns) -> patterns.forEach(pattern -> builder.drop(attributeKey, pattern)));
             samplersBySpanKind.put(spanKind, builder.build());
         });
 
-        // Return a sampler that falls back to the default sampler
         return new Sampler() {
             @Override
             public SamplingResult shouldSample(Context context, String s, String s1, SpanKind spanKind, Attributes attributes, List<LinkData> list) {
