@@ -1,6 +1,6 @@
 rules:
   drop:
-    - span_kind: SERVER
+    - spanKind: SERVER
       attributes:
         - url.path:
             - ^/health$
@@ -8,7 +8,7 @@ rules:
         - http.route:
             - ^/health$
             - ^/mad$
-    - span_kind: CLIENT
+    - spanKind: CLIENT
       attributes:
         - bac.def:
             - ^/health$
