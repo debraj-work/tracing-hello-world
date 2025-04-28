@@ -28,9 +28,12 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
 
     private Properties dropProps() {
         var props = new Properties();
-        var propsFile = System.getProperty(ENV_RULE_SAMPLER_DROP_PROPS_FILE, "");
+        var propsFile = System.getProperty(ENV_RULE_SAMPLER_DROP_PROPS_FILE);
         if (propsFile == null || propsFile.trim().isEmpty()) {
-            logger.warning("Environment variable " + ENV_RULE_SAMPLER_DROP_PROPS_FILE + " is not set.");
+            propsFile = System.getenv(ENV_RULE_SAMPLER_DROP_PROPS_FILE.replace('.', '_').toUpperCase());
+        }
+        if (propsFile == null || propsFile.trim().isEmpty()) {
+            logger.warning("Neither system property nor environment variable " + ENV_RULE_SAMPLER_DROP_PROPS_FILE + " is set.");
             return props;
         }
         try (var reader = Files.newBufferedReader(Paths.get(propsFile))) {
