@@ -12,7 +12,10 @@ import io.opentelemetry.sdk.trace.samplers.SamplingResult;
 import lombok.val;
 
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
