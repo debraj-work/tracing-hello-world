@@ -1,0 +1,8 @@
+rules:
+  drop:
+    - span_kind: SERVER
+      attributes:
+        url.path: "^/health$"
+    - span_kind: SERVER
+      attributes:
+        url.path: "^/metrics$"
