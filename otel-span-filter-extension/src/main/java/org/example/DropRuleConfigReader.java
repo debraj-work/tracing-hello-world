@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,21 +19,23 @@ class DropRuleConfigReader {
     private static final Logger logger = Logger.getLogger(DropRuleConfigReader.class.getName());
 
     /**
-     * Reads the sampler-drop-config.yaml file and returns a map containing list of drop rules indexed by SpanKind.
+     * Reads the sampler-drop-config.yaml file and returns a map containing drop rules indexed by SpanKind.
      * The YAML file should have the following structure:
      * rules:
      *   drop:
      *     - span_kind: SERVER
      *       attributes:
-     *         url.path: "^/health$"
-     *     - span_kind: SERVER
-     *       attributes:
-     *         url.path: "^/metrics$"
+     *         - url.path:
+     *             - ^/health$
+     *             - ^/metrics$
+     *         - http.route:
+     *             - ^/health$
+     *             - ^/mad$
      *
-     * @return Map<SpanKind, List<Map<AttributeKey<String>, String>>> where the inner map contains attribute keys and pattern values
+     * @return Map<SpanKind, Map<AttributeKey<String>, Set<String>>> where the inner map contains attribute keys and sets of pattern values
      */
-    Map<SpanKind, List<Map<AttributeKey<String>, String>>> readDropRulesFromYaml(final Path yamlFile) {
-        Map<SpanKind, List<Map<AttributeKey<String>, String>>> dropRulesBySpanKind = new HashMap<>();
+    Map<SpanKind, Map<AttributeKey<String>, Set<String>>> readDropRulesFromYaml(final Path yamlFile) {
+        Map<SpanKind, Map<AttributeKey<String>, Set<String>>> dropRulesBySpanKind = new HashMap<>();
         try (var reader = Files.newBufferedReader(yamlFile)) {
             Yaml yaml = new Yaml();
             Map<String, Object> config = yaml.load(reader);
@@ -65,22 +69,31 @@ class DropRuleConfigReader {
                     continue;
                 }
 
-                Map<String, Object> attributes = (Map<String, Object>) rule.get("attributes");
-                Map<AttributeKey<String>, String> attributePatterns = new HashMap<>();
+                List<Map<String, Object>> attributesList = (List<Map<String, Object>>) rule.get("attributes");
+                Map<AttributeKey<String>, Set<String>> attributePatterns = new HashMap<>();
 
-                for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-                    attributePatterns.put(AttributeKey.stringKey(entry.getKey()), entry.getValue().toString());
+                for (Map<String, Object> attributeEntry : attributesList) {
+                    for (Map.Entry<String, Object> entry : attributeEntry.entrySet()) {
+                        String attributeKey = entry.getKey();
+                        List<String> patterns = (List<String>) entry.getValue();
+                        Set<String> patternSet = new HashSet<>(patterns);
+                        attributePatterns.put(AttributeKey.stringKey(attributeKey), patternSet);
+                    }
                 }
 
-                dropRulesBySpanKind.computeIfAbsent(spanKind, k -> new ArrayList<>()).add(attributePatterns);
+                // Get or create the attribute map for this SpanKind
+                Map<AttributeKey<String>, Set<String>> spanKindAttributes = dropRulesBySpanKind.computeIfAbsent(spanKind, k -> new HashMap<>());
+
+                // Merge the attribute patterns into the map
+                for (Map.Entry<AttributeKey<String>, Set<String>> entry : attributePatterns.entrySet()) {
+                    spanKindAttributes.computeIfAbsent(entry.getKey(), k -> new HashSet<>()).addAll(entry.getValue());
+                }
             }
 
             // Log the parsed rules
-            for (Map.Entry<SpanKind, List<Map<AttributeKey<String>, String>>> entry : dropRulesBySpanKind.entrySet()) {
+            for (Map.Entry<SpanKind, Map<AttributeKey<String>, Set<String>>> entry : dropRulesBySpanKind.entrySet()) {
                 logger.info("Drop rules for SpanKind " + entry.getKey() + ":");
-                for (Map<AttributeKey<String>, String> attributePatterns : entry.getValue()) {
-                    logger.info("  Attributes: " + attributePatterns);
-                }
+                logger.info("  Attributes: " + entry.getValue());
             }
 
             return dropRulesBySpanKind;

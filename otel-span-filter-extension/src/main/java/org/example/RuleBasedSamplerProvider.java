@@ -10,7 +10,6 @@ import io.opentelemetry.sdk.trace.data.LinkData;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.sdk.trace.samplers.SamplingResult;
 
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
@@ -27,11 +26,11 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
         var samplersBySpanKind = new HashMap<SpanKind, Sampler>();
 
         // Create samplers for each SpanKind
-        dropRules.forEach((spanKind, rules) -> {
+        dropRules.forEach((spanKind, attributes) -> {
             var builder = RuleBasedRoutingSampler.builder(spanKind, defaultSampler);
-            rules.forEach(attributes ->
-                    attributes.forEach(builder::drop)
-            );
+            attributes.forEach((attributeKey, patterns) -> {
+                patterns.forEach(pattern -> builder.drop(attributeKey, pattern));
+            });
             samplersBySpanKind.put(spanKind, builder.build());
         });
 
@@ -56,7 +55,7 @@ public class RuleBasedSamplerProvider implements ConfigurableSamplerProvider {
     }
 
 
-    public Map<SpanKind, List<Map<AttributeKey<String>, String>>> readDropRulesFromYaml() {
+    public Map<SpanKind, Map<AttributeKey<String>, Set<String>>> readDropRulesFromYaml() {
         String yamlFile = System.getProperty(ENV_RULE_SAMPLER_DROP_YAML_FILE);
 
         if (yamlFile == null || yamlFile.trim().isEmpty()) {

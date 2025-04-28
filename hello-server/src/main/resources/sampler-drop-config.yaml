@@ -2,7 +2,17 @@ rules:
   drop:
     - span_kind: SERVER
       attributes:
-        url.path: "^/health$"
-    - span_kind: SERVER
+        - url.path:
+            - ^/health$
+            - ^/metrics$
+        - http.route:
+            - ^/health$
+            - ^/mad$
+    - span_kind: CLIENT
       attributes:
-        url.path: "^/metrics$"
+        - bac.def:
+            - ^/health$
+            - ^/metrics$
+        - lm.rd:
+            - ^/rod$
+            - ^/cad$
