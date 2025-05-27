@@ -49,6 +49,13 @@
                 <version>${log4j2.version}</version>
             </dependency>
 
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version> <!-- Use latest compatible version -->
+            <scope>provided</scope>
+        </dependency>
+
             <!-- Lettuce Redis Client -->
             <dependency>
                 <groupId>io.lettuce</groupId>
